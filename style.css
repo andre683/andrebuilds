@@ -88,13 +88,108 @@ main {
 
 .link-item .right { margin-left: auto; width: 40px; height: 40px; }
 
-/* Center icon + text for Spotify only */
-.spotify-item {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* Base */
+body {
+  text-align: center;
+  font-family: Arial, sans-serif;
+  background-color: #1e293b;
+  color: #fff;
+  margin: 0;
 }
-.spotify-item img { margin-right: 6px; }
+
+header { font-size: 1.25rem; }
+
+.profile-img {
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  margin-top: 4rem;
+  object-fit: cover;
+}
+
+.name {
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.social-links { text-align: center; }
+.social-links a { display: inline-block; padding: 0 0.1em; }
+.social-links img {
+  width: 1em;
+  height: 1em;
+  -webkit-filter: grayscale(100%);
+  filter: brightness(0) invert(1);
+}
+
+.description { margin-top: 0.5rem; color: #94A3B8; }
+
+/* Main container */
+main {
+  max-width: 600px;
+  margin: 50px auto;
+  padding: 20px;
+}
+
+/* Link card */
+.link-item {
+  background-color: #000;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(27, 31, 40, 0.1);
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 8px 16px;
+  min-height: 48px; /* consistent height */
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.link-item:hover {
+  background-color: #0b0b0b;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+}
+
+.link-item:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 3px;
+}
+
+.link-item img {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.link-item p {
+  text-align: center;
+  margin: 0;
+  line-height: 1.2;
+  flex-grow: 1;
+}
+
+.link-item .right { margin-left: auto; width: 40px; height: 40px; }
+
+/* Spotify override */
+.spotify-item {
+  justify-content: center;   /* center contents horizontally */
+}
+
+.spotify-item p {
+  flex-grow: 0;              /* stop stretching */
+}
+
+.spotify-item img {
+  margin-right: 6px;
+}
 
 /* Responsive 2-col grid on wider screens */
 @media (min-width: 860px) {
