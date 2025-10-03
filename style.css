@@ -3,13 +3,11 @@ body {
   text-align: center;
   font-family: Arial, sans-serif;
   background-color: #1e293b;
-  color: #fff; 
+  color: #fff;
   margin: 0;
 }
 
-header {
-  font-size: 1.25rem;
-}
+header { font-size: 1.25rem; }
 
 .profile-img {
   width: 9rem;
@@ -27,13 +25,8 @@ header {
   margin-bottom: 0.5rem;
 }
 
-.social-links {
-  text-align: center;
-}
-.social-links a {
-  display: inline-block;
-  padding: 0 0.1em;
-}
+.social-links { text-align: center; }
+.social-links a { display: inline-block; padding: 0 0.1em; }
 .social-links img {
   width: 1em;
   height: 1em;
@@ -41,10 +34,7 @@ header {
   filter: brightness(0) invert(1);
 }
 
-.description {
-  margin-top: 0.5rem;
-  color: #94A3B8;
-}
+.description { margin-top: 0.5rem; color: #94A3B8; }
 
 /* Main container */
 main {
@@ -55,7 +45,7 @@ main {
 
 /* Link card */
 .link-item {
-  background-color: #000;        
+  background-color: #000;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(27, 31, 40, 0.1);
   display: flex;
@@ -64,9 +54,10 @@ main {
   color: #fff;
   text-decoration: none;
   font-weight: bold;
-  padding: 0.5em;
+  padding: 8px 16px;
+  min-height: 48px; /* consistent height while allowing wrap on mobile */
   transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-  border: 1px solid rgba(255,255,255,0.06); 
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
 .link-item:hover {
@@ -76,48 +67,50 @@ main {
 }
 
 .link-item:focus-visible {
-  outline: 2px solid #60a5fa;  
+  outline: 2px solid #60a5fa;
   outline-offset: 3px;
 }
 
 .link-item img {
-  width: 20px;
+  width: 20px;            /* pixel-based for predictable icon size */
   height: 20px;
   margin-right: 8px;
   flex-shrink: 0;
+  display: block;
 }
 
 .link-item p {
   text-align: center;
   margin: 0;
+  line-height: 1.2;       /* prevents extra vertical growth */
   flex-grow: 1;
 }
 
-.link-item .right {
-  margin-left: auto;
-  width: 40px;
-  height: 40px;
-}
+.link-item .right { margin-left: auto; width: 40px; height: 40px; }
 
+/* Center icon + text for Spotify only */
 .spotify-item {
   display: flex;
-  justify-content: center;   
+  justify-content: center;
   align-items: center;
 }
+.spotify-item img { margin-right: 6px; }
 
-.spotify-item img {
-  margin-right: 6px;  
-}
-
+/* Responsive 2-col grid on wider screens */
 @media (min-width: 860px) {
   main {
-    max-width: 900px;                
-    display: grid;                   
-    grid-template-columns: 1fr 1fr;  
-    gap: 20px;                       
+    max-width: 900px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
   }
-  
   .link-item { margin-bottom: 0; }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .link-item { transition: none; transform: none; }
+  .link-item:hover { transform: none; box-shadow: 0 0 10px rgba(0,0,0,0.25); }
 }
 
 /* Footer */
@@ -126,8 +119,8 @@ footer{
   line-height: 1.2rem;
   color: #94A3B8;
   padding: 20px 0;
-  position: static;    /* change to 'absolute' only if you prefer it pinned */
+  position: static;
   bottom: 0;
   width: 100%;
-  height: 2.5rem;      
+  height: 2.5rem;
 }
