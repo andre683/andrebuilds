@@ -99,6 +99,16 @@ main {
   height: 40px;
 }
 
+.spotify-item {
+  display: flex;
+  justify-content: center;   
+  align-items: center;
+}
+
+.spotify-item img {
+  margin-right: 6px;  
+}
+
 @media (min-width: 860px) {
   main {
     max-width: 900px;                
