@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-55KTCBB');</script>
+<!-- End Google Tag Manager -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event-driven ingestion on GCP - Andre Arias</title>
+<meta name="description" content="How switching a cron-based SFTP-to-BigQuery pipeline to event-driven Pub/Sub notifications eliminated latency and silent failures.">
+<meta property="og:title" content="Event-driven ingestion on GCP">
+<meta property="og:description" content="Replacing a brittle cron-based SFTP workflow with an event-driven GCS to BigQuery pipeline using Pub/Sub OBJECT_FINALIZE notifications.">
+<meta property="og:url" content="https://andrebuilds.com/work/event-driven-ingestion-gcp.html">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://andrebuilds.com/images/Logo.png">
+<meta name="author" content="Andre Arias">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon16x16.png">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-soft: #161b22;
+    --border: #21262d;
+    --text: #e6edf3;
+    --muted: #9aa4b2;
+    --green: #7ee787;
+    --cyan: #58d6ff;
+    --magenta: #ff2d92;
+    --gold: #ffb300;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    background: rgba(13, 17, 23, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  .prompt {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .prompt span:first-child { color: var(--green); }
+  .tilde { display: none; }
+  @media (max-width: 540px) {
+    .host { display: none; }
+    .tilde { display: inline; }
+    nav ul { gap: 16px; }
+    nav ul a { font-size: 13px; }
+  }
+  nav ul {
+    display: flex;
+    gap: 22px;
+    list-style: none;
+  }
+  nav ul a {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  nav ul a:hover { color: var(--cyan); }
+
+  /* ---------- case study ---------- */
+  .case-header {
+    padding: 72px 0 48px;
+  }
+  .case-label {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+  .case-label a {
+    color: var(--green);
+    text-decoration: none;
+  }
+  .case-label a:hover { text-decoration: underline; }
+  .case-header h1 {
+    font-family: var(--mono);
+    font-size: clamp(24px, 4.5vw, 36px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+  }
+  .case-stack {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--cyan);
+    margin-top: 14px;
+  }
+  .case-meta {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .case-body {
+    padding-bottom: 80px;
+  }
+
+  .case-section {
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+  }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--green);
+    margin-bottom: 24px;
+  }
+  .case-body p {
+    color: var(--muted);
+    margin-bottom: 20px;
+    max-width: 62ch;
+  }
+  .case-body p strong { color: var(--text); font-weight: 600; }
+  .case-body a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+  .case-body a:hover { text-decoration: underline; }
+
+  .case-img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 8px 0 32px;
+    display: block;
+  }
+
+  .option-list {
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-soft);
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .option-list li {
+    font-size: 16px;
+    color: var(--muted);
+    padding: 5px 0;
+  }
+  .option-list li strong { color: var(--text); }
+
+  .flow-list {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+  }
+  .flow-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 16px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .flow-list li:last-child { border-bottom: none; }
+  .flow-list li::before {
+    content: "→";
+    font-family: var(--mono);
+    color: var(--cyan);
+    flex-shrink: 0;
+  }
+
+  pre {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 22px;
+    overflow-x: auto;
+    margin: 24px 0;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  p code {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: var(--mono);
+    font-size: 13.5px;
+  }
+
+  .outcome-stat {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    border-left: 3px solid var(--cyan);
+    padding: 10px 0 10px 18px;
+    margin: 20px 0;
+  }
+
+  .back-link {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    margin-top: 40px;
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    width: 100%;
+  }
+  .back-link:hover { color: var(--cyan); }
+
+  /* ---------- footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 0 40px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-55KTCBB"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<nav>
+  <div class="wrap">
+    <a class="prompt" href="../"><span>$</span> <span class="tilde">~</span><span class="host">andrebuilds.com</span></a>
+    <ul>
+      <li><a href="../#work">work</a></li>
+      <li><a href="../#notes">notes</a></li>
+      <li><a href="../#about">about</a></li>
+      <li><a href="../#contact">contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<article>
+  <div class="wrap">
+    <header class="case-header">
+      <div class="case-label"><a href="../#work">-- selected work</a></div>
+      <h1>Event-driven ingestion on GCP</h1>
+      <div class="case-stack">Cloud Scheduler &middot; Cloud Run &middot; GCS &middot; Pub/Sub &middot; BigQuery DTS</div>
+      <div class="case-meta">Direct Wines &middot; Andre Arias</div>
+    </header>
+
+    <div class="case-body">
+
+      <div class="case-section">
+        <div class="section-label">-- problem</div>
+        <p>A third-party data file arrived via SFTP daily, somewhere between 8 AM and
+        12 PM. The first leg of the pipeline, Cloud Run polling the SFTP server and
+        uploading the file to Google Cloud Storage, handled the variable timing fine
+        with retry logic.</p>
+        <p>The second leg did not. BigQuery Data Transfer Service ran on a fixed cron
+        schedule, which meant choosing between two bad options:</p>
+        <ul class="option-list">
+          <li><strong>Schedule it late (1 PM):</strong> reports are stale all morning, and someone will ask why</li>
+          <li><strong>Schedule it hourly:</strong> still adds latency on top of the SFTP retries, and wastes runs when the file hasn't arrived yet</li>
+        </ul>
+        <p>The root issue: a scheduled trigger has no way to know the file has landed.
+        The pipeline needed to react to what actually happened, not guess when it might.</p>
+      </div>
+
+      <div class="case-section">
+        <div class="section-label">-- architecture</div>
+        <img class="case-img" src="../images/event_driven.png" alt="Architecture diagram showing two phases: the existing scheduled setup (Cloud Scheduler triggers Cloud Run every 30 minutes, Cloud Run checks SFTP and uploads to GCS), and the event-driven addition (GCS OBJECT_FINALIZE fires to Pub/Sub, which triggers BigQuery Data Transfer Service, loading the table).">
+        <p>The existing scheduled leg stays in place: Cloud Scheduler triggers Cloud Run
+        every 30 minutes between 8 and 11 AM, and Cloud Run polls the SFTP server and
+        uploads the file to GCS when it finds it.</p>
+        <p>The new event-driven leg replaces the cron-scheduled BigQuery transfer. When
+        Cloud Run writes the file to GCS, an <code>OBJECT_FINALIZE</code> notification
+        fires to a Pub/Sub topic. BigQuery Data Transfer Service is subscribed to that
+        topic and triggers immediately.</p>
+      </div>
+
+      <div class="case-section">
+        <div class="section-label">-- decisions and tradeoffs</div>
+        <p><strong>Why Pub/Sub notifications instead of a direct GCS trigger?</strong>
+        BigQuery Data Transfer Service only supports Pub/Sub as its event source, so the
+        GCS notification has to go through a topic. This adds one hop but requires no
+        custom code: the subscription wires directly to the transfer config.</p>
+        <p><strong>Filtering at the notification level.</strong> The Pub/Sub notification
+        is scoped to a specific folder prefix and file suffix, so only the expected file
+        triggers the transfer. Other writes to the bucket are ignored without any
+        application logic handling them.</p>
+        <p>Setting this up requires the CLI. The GCS notifications UI was removed from
+        the Cloud Console, and the
+        <a href="https://docs.cloud.google.com/storage/docs/reporting-changes#enabling" target="_blank" rel="noopener">documentation</a>
+        now points exclusively to <code>gcloud</code>:</p>
+
+<pre>gcloud storage buckets notifications create gs://my-bucket \
+  --topic=my-topic \
+  --event-types=OBJECT_FINALIZE \
+  --payload-format=JSON \
+  --prefix=my-folder/ \
+  --suffix=.csv</pre>
+
+        <p><strong>The remaining tradeoff:</strong> the Cloud Run leg still polls on a
+        30-minute schedule. If the file lands at 8:01 AM, it won't be picked up until
+        8:30. Making that leg event-driven too, by triggering Cloud Run from an
+        SFTP-side webhook or a Cloud Tasks queue, would close that gap entirely. That
+        change is planned but not yet shipped.</p>
+      </div>
+
+      <div class="case-section">
+        <div class="section-label">-- outcome</div>
+        <p>Data now lands in BigQuery within minutes of the file arriving in GCS, rather
+        than waiting for the next scheduled transfer window. The change eliminated the
+        daily pattern of stale morning reports and the Slack messages that followed.</p>
+        <div class="outcome-stat">File-to-BigQuery latency: from up to 60 min (cron) to under 5 min (event-driven)</div>
+        <p>The pipeline also became more observable: a failed Pub/Sub delivery or a
+        missed transfer now surfaces as a dead-letter event rather than a silent gap in
+        the data.</p>
+
+        <a class="back-link" href="../#work">&larr; back to work</a>
+      </div>
+
+    </div>
+  </div>
+</article>
+
+<footer>
+  <div class="wrap">
+    <span style="color: var(--green);">$</span> built from scratch with HTML and CSS &middot; &copy; 2026 Andre Arias
+  </div>
+</footer>
+
+</body>
+</html>

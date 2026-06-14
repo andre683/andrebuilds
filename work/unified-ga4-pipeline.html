@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-55KTCBB');</script>
+<!-- End Google Tag Manager -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unified GA4 analytics pipeline for 8 brands - Andre Arias</title>
+<meta name="description" content="How I built a config-driven Dataform pipeline that unifies GA4 data across 8 ecommerce brands into a single trusted reporting layer.">
+<meta property="og:title" content="Unified GA4 analytics pipeline for 8 brands">
+<meta property="og:description" content="Config-driven Dataform pipeline unifying GA4 across 8 ecommerce brands: incremental models, bot detection, schema-drift safeguards, and centralized channel logic.">
+<meta property="og:url" content="https://andrebuilds.com/work/unified-ga4-pipeline.html">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://andrebuilds.com/images/Logo.png">
+<meta name="author" content="Andre Arias">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon16x16.png">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-soft: #161b22;
+    --border: #21262d;
+    --text: #e6edf3;
+    --muted: #9aa4b2;
+    --green: #7ee787;
+    --cyan: #58d6ff;
+    --magenta: #ff2d92;
+    --gold: #ffb300;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    background: rgba(13, 17, 23, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  .prompt {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .prompt span:first-child { color: var(--green); }
+  .tilde { display: none; }
+  @media (max-width: 540px) {
+    .host { display: none; }
+    .tilde { display: inline; }
+    nav ul { gap: 16px; }
+    nav ul a { font-size: 13px; }
+  }
+  nav ul {
+    display: flex;
+    gap: 22px;
+    list-style: none;
+  }
+  nav ul a {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  nav ul a:hover { color: var(--cyan); }
+
+  /* ---------- case study ---------- */
+  .case-header {
+    padding: 72px 0 48px;
+  }
+  .case-label {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+  .case-label a {
+    color: var(--green);
+    text-decoration: none;
+  }
+  .case-label a:hover { text-decoration: underline; }
+  .case-header h1 {
+    font-family: var(--mono);
+    font-size: clamp(24px, 4.5vw, 36px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+  }
+  .case-stack {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--cyan);
+    margin-top: 14px;
+  }
+  .case-meta {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .case-body { padding-bottom: 80px; }
+
+  .case-section {
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+  }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--green);
+    margin-bottom: 24px;
+  }
+  .case-body p {
+    color: var(--muted);
+    margin-bottom: 20px;
+    max-width: 62ch;
+  }
+  .case-body p strong { color: var(--text); font-weight: 600; }
+  .case-body a { color: var(--cyan); text-decoration: none; }
+  .case-body a:hover { text-decoration: underline; }
+
+  /* ---------- architecture diagram ---------- */
+  .arch {
+    margin: 8px 0 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .arch-layer {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .arch-layer:last-child { border-bottom: none; }
+  .arch-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    background: var(--bg-soft);
+    padding: 16px 14px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    line-height: 1.4;
+  }
+  .arch-content {
+    padding: 16px 18px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .arch-content span { color: var(--text); }
+  .arch-content .dim { color: var(--muted); opacity: 0.6; font-size: 12px; }
+  @media (max-width: 480px) {
+    .arch-layer { grid-template-columns: 1fr; }
+    .arch-label { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+
+  /* ---------- decision cards ---------- */
+  .decision {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-soft);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .decision h3 {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--cyan);
+    margin-bottom: 10px;
+  }
+  .decision p {
+    margin-bottom: 0 !important;
+    font-size: 15.5px;
+  }
+  .decision a { color: var(--cyan); text-decoration: none; }
+  .decision a:hover { text-decoration: underline; }
+
+  /* ---------- outcome ---------- */
+  .outcome-stat {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    border-left: 3px solid var(--cyan);
+    padding: 10px 0 10px 18px;
+    margin: 20px 0;
+  }
+
+  p code {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: var(--mono);
+    font-size: 13.5px;
+  }
+
+  .links-section {
+    border-top: 1px solid var(--border);
+    padding-top: 28px;
+    margin-top: 40px;
+  }
+  .links-section p {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 10px !important;
+  }
+  .links-section a {
+    color: var(--cyan);
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .links-section a:hover { text-decoration: underline; }
+
+  .back-link {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    margin-top: 40px;
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    width: 100%;
+  }
+  .back-link:hover { color: var(--cyan); }
+
+  /* ---------- footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 0 40px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-55KTCBB"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<nav>
+  <div class="wrap">
+    <a class="prompt" href="../"><span>$</span> <span class="tilde">~</span><span class="host">andrebuilds.com</span></a>
+    <ul>
+      <li><a href="../#work">work</a></li>
+      <li><a href="../#notes">notes</a></li>
+      <li><a href="../#about">about</a></li>
+      <li><a href="../#contact">contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<article>
+  <div class="wrap">
+    <header class="case-header">
+      <div class="case-label"><a href="../#work">-- selected work</a></div>
+      <h1>Unified GA4 analytics pipeline for 8 brands</h1>
+      <div class="case-stack">GA4 &middot; BigQuery &middot; Dataform &middot; GTM &middot; Looker Studio &middot; Power BI</div>
+      <div class="case-meta">Direct Wines &middot; Andre Arias</div>
+    </header>
+
+    <div class="case-body">
+
+      <div class="case-section">
+        <div class="section-label">-- problem</div>
+        <p>Eight ecommerce brands. Each with its own GA4 property, its own BigQuery
+        export, its own quirks in how traffic sources and campaigns are tagged. The
+        business wanted unified reporting: one place to see sessions, transactions, and
+        channel performance across all brands, with numbers that hold up when someone
+        asks where they came from.</p>
+        <p>The core challenge was not just getting the data into one place. It was
+        making sure the same event, filtered the same way, classified the same way,
+        showed up consistently regardless of which brand it came from. Any inconsistency
+        in how filters or channel rules were applied would surface immediately in
+        cross-brand comparisons.</p>
+        <p>I designed and built this pipeline as a layered Dataform project and have
+        owned it end to end since.</p>
+      </div>
+
+      <div class="case-section">
+        <div class="section-label">-- architecture</div>
+
+        <div class="arch">
+          <div class="arch-layer">
+            <div class="arch-label">sources</div>
+            <div class="arch-content">
+              <span>GA4Dataform exports</span> &middot; one BigQuery dataset per brand<br>
+              <span class="dim">+ Google Ads, Search Console, order data</span>
+            </div>
+          </div>
+          <div class="arch-layer">
+            <div class="arch-label">staging</div>
+            <div class="arch-content">
+              <span>int_ga4_events</span> &middot; union across all 8 brands<br>
+              <span>int_ga4_sessions_filters</span> &middot; canonical eligibility gate<br>
+              <span>int_ga4_sessions / transactions</span> &middot; + intraday variants<br>
+              <span class="dim">processing_watermark &middot; tracks latest date per brand</span>
+            </div>
+          </div>
+          <div class="arch-layer">
+            <div class="arch-label">unified</div>
+            <div class="arch-content">
+              <span>fact_ga4_sessions</span> &middot; full channel + campaign classification<br>
+              <span>fact_ga4_events / transactions</span><br>
+              <span>dim_fiscal_dates &middot; dim_campaign_details &middot; dim_order_details</span><br>
+              <span class="dim">fact_facebook_ads &middot; fact_gads &middot; fact_searchdata</span>
+            </div>
+          </div>
+          <div class="arch-layer">
+            <div class="arch-label">reporting</div>
+            <div class="arch-content">
+              <span>25+ rpt_ tables</span> consumed by Looker Studio and Power BI<br>
+              <span class="dim">sessions &middot; transactions &middot; ecommerce &middot; paid media &middot; SEO</span>
+            </div>
+          </div>
+        </div>
+
+        <p>Raw GA4 event exports arrive via GA4Dataform by Superform Labs, one BigQuery
+        dataset per brand. The staging layer unions them, applies filters, and produces
+        session and transaction intermediates. The unified layer enriches those with
+        channel classification, campaign mapping, and dimension joins. The reporting
+        layer materializes the tables that dashboards read directly.</p>
+      </div>
+
+      <div class="case-section">
+        <div class="section-label">-- decisions and tradeoffs</div>
+
+        <div class="decision">
+          <h3>-- config-driven brand pattern</h3>
+          <p>Every brand-specific detail lives in a single JS config object: GA4 property
+          ID, BigQuery dataset, valid hostnames, GSC dataset, Google Ads customer ID.
+          The staging union query is generated from that config at compile time. Adding a
+          ninth brand is one entry in one file; every downstream model rebuilds
+          automatically. See <a href="https://github.com/andre683/dataform-ga4-patterns/blob/main/includes/brands.js" target="_blank" rel="noopener">brands.js</a>.</p>
+        </div>
+
+        <div class="decision">
+          <h3>-- single canonical eligibility table</h3>
+          <p><a href="https://github.com/andre683/dataform-ga4-patterns/blob/main/definitions/analytics_staging/int_ga4_sessions_filters.sqlx" target="_blank" rel="noopener"><code>int_ga4_sessions_filters</code></a> is the one place where all filter
+          logic lives: hostname validation against the brand config, country exclusions
+          for both bot-proxy geographies and internal developer traffic, internal traffic
+          type filtering, and a list of 50-plus referral sources to exclude. Every fact
+          table joins to this table rather than re-implementing its own filters. Adding
+          or changing a rule takes one edit and applies everywhere.</p>
+        </div>
+
+        <div class="decision">
+          <h3>-- schema-drift safeguard via assertion gate</h3>
+          <p>A <code>ga4_yesterday_gate</code> assertion runs before the staging union.
+          It compares the latest event date in each brand's raw GA4 export against a
+          processing watermark. If all brands already match the watermark, the assertion
+          fails and blocks the downstream run, preventing double-processing. If any
+          brand has new data, the assertion passes and the pipeline runs. The gate also
+          surfaces when a brand's export has stopped updating, which would otherwise
+          produce a silent gap.</p>
+        </div>
+
+        <div class="decision">
+          <h3>-- bot detection</h3>
+          <p>Traffic quality filtering runs at multiple levels. Country exclusions in
+          the eligibility table serve two purposes: some geographies are excluded because
+          they are known sources of bot-proxy traffic, while others, such as India, are
+          excluded because that is where the development team is based and their sessions
+          would otherwise pollute production data. The internal traffic type field removes
+          additional employee and QA traffic. The referral exclusion list removes tool
+          and internal-system referrals. At the event level, server-side tagging via
+          Stape surfaces <code>is_bot_stape</code> and <code>bot_score_stape</code>
+          fields for further downstream filtering.</p>
+        </div>
+
+        <div class="decision">
+          <h3>-- centralized channel classification</h3>
+          <p>A JS helper function maps every combination of source, medium, campaign,
+          and click ID to one of 18 channel categories, then to one of 34 marketing
+          group IDs that join to a channel map dimension. All 8 brands run through the
+          same function. When a channel rule needs updating, it changes in one place and
+          applies across every brand and every reporting table on the next run.</p>
+        </div>
+
+        <div class="decision">
+          <h3>-- reclassification via campaign response code lookup</h3>
+          <p>The channel classification CASE statement can only work with what UTM
+          parameters and click IDs provide. Offline channels, such as direct mail, often
+          arrive with no UTMs at all, so the first pass returns Unmapped. A second
+          reclassification step rescues those sessions using a proprietary campaign
+          response code embedded in the landing URL. The code is looked up in a
+          three-table chain: <code>dim_campaign_details</code> maps the code to a
+          marketing activity and media type, <code>dim_marketing_group</code> maps that
+          pair to a marketing group ID, and <code>dim_channel_map</code> resolves it to
+          the final channel and category labels. Sessions with no response code and a
+          google/none or none/none source are resolved to Direct. A dedicated assertion
+          gates a specific high-volume response code to catch upstream data issues before
+          they affect classification.</p>
+        </div>
+
+        <div class="decision">
+          <h3>-- incremental pre-ops with backfill support</h3>
+          <p>All incremental models use a pre-operations pattern that calculates the
+          checkpoint date, deletes from that date forward, then reprocesses. A
+          <code>BACKFILL_DATE</code> compilation variable in <code>workflow_settings.yaml</code>
+          defaults to empty for normal scheduled runs. Passing it via CLI rewrites the
+          checkpoint for a targeted date range without touching any SQL. See
+          <a href="https://github.com/andre683/dataform-ga4-patterns/blob/main/includes/pre_ops.js" target="_blank" rel="noopener">pre_ops.js</a>
+          and the note on
+          <a href="../notes/backfilling-incremental-models-dataform.html">backfilling incremental models in Dataform</a>.</p>
+        </div>
+      </div>
+
+      <div class="case-section">
+        <div class="section-label">-- outcome</div>
+        <p>The pipeline processes GA4 data for all 8 brands daily, feeding 25-plus
+        reporting tables that power dashboards in Looker Studio and Power BI. Cross-brand
+        comparisons are consistent because every brand runs through the same filters,
+        the same channel rules, and the same dimension joins.</p>
+        <div class="outcome-stat">8 brands &middot; 1 pipeline &middot; one config entry to add a new brand</div>
+        <p>Backfills that used to require hardcoding dates and reverting SQL are now a
+        single CLI flag. Channel classification that used to live in individual reports
+        is now tested and versioned in one place. Bot and quality filters that used to
+        be inconsistent across reports are now applied at a single layer and inherited
+        by everything downstream.</p>
+        <p>The pipeline is under active development. Current work includes expanding
+        intraday coverage, refining the channel taxonomy, and integrating additional
+        paid media sources.</p>
+
+        <div class="links-section">
+          <p>-- code</p>
+          <p><a href="https://github.com/andre683/dataform-ga4-patterns" target="_blank" rel="noopener">github.com/andre683/dataform-ga4-patterns</a>: sanitized patterns from this pipeline: brand config, session eligibility, incremental pre-ops, idempotency gate, channel classification</p>
+        </div>
+
+        <a class="back-link" href="../#work">&larr; back to work</a>
+      </div>
+
+    </div>
+  </div>
+</article>
+
+<footer>
+  <div class="wrap">
+    <span style="color: var(--green);">$</span> built from scratch with HTML and CSS &middot; &copy; 2026 Andre Arias
+  </div>
+</footer>
+
+</body>
+</html>

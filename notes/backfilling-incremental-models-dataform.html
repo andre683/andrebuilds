@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-55KTCBB');</script>
+<!-- End Google Tag Manager -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backfilling incremental models in Dataform with a compilation variable - Andre Arias</title>
+<meta name="description" content="How to reprocess historical data in Dataform without touching your SQL: a BACKFILL_DATE compilation variable that works alongside GA4Dataform's incremental checkpoint pattern.">
+<meta property="og:title" content="Backfilling incremental models in Dataform with a compilation variable">
+<meta property="og:description" content="Surgical historical reprocessing in Dataform: no code changes, no hardcoded dates to revert.">
+<meta property="og:url" content="https://andrebuilds.com/notes/backfilling-incremental-models-dataform.html">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://andrebuilds.com/images/Logo.png">
+<meta name="author" content="Andre Arias">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon16x16.png">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-soft: #161b22;
+    --border: #21262d;
+    --text: #e6edf3;
+    --muted: #9aa4b2;
+    --green: #7ee787;
+    --cyan: #58d6ff;
+    --magenta: #ff2d92;
+    --gold: #ffb300;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    background: rgba(13, 17, 23, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  .prompt {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .prompt span:first-child { color: var(--green); }
+  .tilde { display: none; }
+  @media (max-width: 540px) {
+    .host { display: none; }
+    .tilde { display: inline; }
+    nav ul { gap: 16px; }
+    nav ul a { font-size: 13px; }
+  }
+  nav ul {
+    display: flex;
+    gap: 22px;
+    list-style: none;
+  }
+  nav ul a {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  nav ul a:hover { color: var(--cyan); }
+
+  /* ---------- article ---------- */
+  .note-header {
+    padding: 72px 0 48px;
+  }
+  .note-label {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+  .note-label a {
+    color: var(--green);
+    text-decoration: none;
+  }
+  .note-label a:hover { text-decoration: underline; }
+  .note-header h1 {
+    font-family: var(--mono);
+    font-size: clamp(22px, 4vw, 32px);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+  }
+  .note-meta {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 14px;
+  }
+
+  .note-body {
+    padding-bottom: 80px;
+    border-top: 1px solid var(--border);
+    padding-top: 40px;
+  }
+  .note-body p {
+    color: var(--muted);
+    margin-bottom: 20px;
+    max-width: 62ch;
+  }
+  .note-body p strong { color: var(--text); font-weight: 600; }
+  .note-body h2 {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--green);
+    margin: 40px 0 16px;
+  }
+  .note-body a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+  .note-body a:hover { text-decoration: underline; }
+
+  pre {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 22px;
+    overflow-x: auto;
+    margin: 24px 0;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  code { font-family: var(--mono); font-size: 14px; }
+  p code {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 13.5px;
+  }
+  .comment { color: var(--green); }
+
+  .logic-list {
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-soft);
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .logic-list li {
+    font-family: var(--mono);
+    font-size: 14.5px;
+    color: var(--muted);
+    padding: 5px 0;
+  }
+  .logic-list li strong { color: var(--text); }
+
+  .links-section {
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    margin-top: 48px;
+  }
+  .links-section p {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 10px !important;
+  }
+  .links-section a {
+    color: var(--cyan);
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .links-section a:hover { text-decoration: underline; }
+  .back-link {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    margin-top: 40px;
+  }
+  .back-link:hover { color: var(--cyan); }
+
+  .note-img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 32px 0;
+    display: block;
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 0 40px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-55KTCBB"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<nav>
+  <div class="wrap">
+    <a class="prompt" href="../"><span>$</span> <span class="tilde">~</span><span class="host">andrebuilds.com</span></a>
+    <ul>
+      <li><a href="../#work">work</a></li>
+      <li><a href="../#notes">notes</a></li>
+      <li><a href="../#about">about</a></li>
+      <li><a href="../#contact">contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<article>
+  <div class="wrap">
+    <header class="note-header">
+      <div class="note-label"><a href="../#notes">-- notes</a></div>
+      <h1>Backfilling incremental models in Dataform with a compilation variable</h1>
+      <div class="note-meta">2026-05 &middot; Andre Arias</div>
+    </header>
+
+    <div class="note-body">
+      <p>Historical backfills in Dataform used to mean one of two bad options: a full
+      table refresh (slow and expensive), or hardcoding a date directly into the SQL,
+      running it, and hoping you remember to revert it before the next scheduled run.</p>
+
+      <p>There is a better way: a <strong>compilation variable</strong> you pass at run
+      time to reprocess only what you need, with no changes to your SQL.</p>
+
+      <img class="note-img" src="../images/backfill.jpeg" alt="VS Code showing the BACKFILL_DATE pre-operations SQL on the left, workflow_settings.yaml in the center, and the Dataform Tools panel with the variable set, with a successful incremental run in the terminal below.">
+
+      <h2>-- the setup</h2>
+
+      <p>My pipeline is built on top of
+      <a href="https://ga4dataform.com/" target="_blank" rel="noopener">GA4Dataform by Superform Labs</a>,
+      which uses a <code>date_checkpoint</code> pattern to handle GA4's 72-hour data
+      latency window. I extended it by adding a <code>BACKFILL_DATE</code> compilation
+      variable to my JS helpers.</p>
+
+      <p>In <code>workflow_settings.yaml</code>, the variable defaults to an empty string,
+      so scheduled runs behave exactly as before. When I need to reprocess historical
+      data, I pass a date via CLI:</p>
+
+<pre>dataform run --vars=BACKFILL_DATE=2026-05-18 --actions=my_model</pre>
+
+      <h2>-- the logic</h2>
+
+      <ul class="logic-list">
+        <li><strong>BACKFILL_DATE provided</strong>: use it as the start date</li>
+        <li><strong>Not provided</strong>: fall back to GA4Dataform's incremental checkpoint</li>
+        <li><strong>Empty table</strong>: fall back to the project <code>START_DATE</code></li>
+      </ul>
+
+      <p>Surgical reprocessing. No code changes. No hardcoded dates to revert.</p>
+
+      <h2>-- bonus: run it from VS Code</h2>
+
+      <p>The <a href="https://dataformtools.com/" target="_blank" rel="noopener">Dataform Tools VS Code extension by Ashish Alex</a>
+      lets you set the compilation variable and run the compiled query directly from the
+      editor. One click to preview exactly what will execute before you commit to a full
+      run.</p>
+
+      <p>This pattern is part of the larger
+      <a href="../#work">Unified GA4 analytics pipeline</a> I own at Direct Wines,
+      where reliable incremental processing across 8 brands makes full refreshes
+      something I almost never need.</p>
+
+      <div class="links-section">
+        <p>-- references</p>
+        <p><a href="https://ga4dataform.com/" target="_blank" rel="noopener">GA4Dataform by Superform Labs</a></p>
+        <p><a href="https://dataformtools.com/" target="_blank" rel="noopener">Dataform Tools VS Code extension</a></p>
+        <p><a href="https://cloud.google.com/dataform/docs/use-compilation-variables" target="_blank" rel="noopener">Dataform docs: compilation variables</a></p>
+        <p><a href="https://gist.github.com/andre683/80aae23a960dda1ea41fbb2f661b0474" target="_blank" rel="noopener">Full code template (gist)</a></p>
+      </div>
+
+      <a class="back-link" href="../#notes">&larr; back to notes</a>
+    </div>
+  </div>
+</article>
+
+<footer>
+  <div class="wrap">
+    <span style="color: var(--green);">$</span> built from scratch with HTML and CSS &middot; &copy; 2026 Andre Arias
+  </div>
+</footer>
+
+</body>
+</html>
