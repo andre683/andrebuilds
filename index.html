@@ -158,8 +158,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border-radius: 6px;
     padding: 8px 14px;
     transition: border-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
   }
   .hero .links a:hover { border-color: var(--cyan); }
+  .hero .links a img { height: 14px; width: auto; display: block; }
 
   /* ---------- sections ---------- */
   section { padding: 64px 0; border-top: 1px solid var(--border); }
@@ -308,8 +312,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </p>
     <div class="links">
       <a href="#work">view work</a>
-      <a href="https://github.com/andre683" target="_blank" rel="noopener">github</a>
-      <a href="https://www.linkedin.com/in/augustoarias/" target="_blank" rel="noopener">linkedin</a>
+      <a href="https://github.com/andre683" target="_blank" rel="noopener"><img src="images/github-mark-white.svg" alt="">github</a>
+      <a href="https://www.linkedin.com/in/augustoarias/" target="_blank" rel="noopener"><img src="images/LI-In-Bug.png" alt="">linkedin</a>
+      <a href="https://open.spotify.com/playlist/34ojh4MUHbRug9ZWDNXhfE?si=7007e14cc1e1457d" target="_blank" rel="noopener"><img src="images/Spotify_Logo_White.png" alt="">spotify</a>
     </div>
   </div>
 </header>
@@ -320,7 +325,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div class="wrap">
     <div class="section-label">-- selected work</div>
 
-    <a class="case" href="#">
+    <a class="case" href="work/unified-ga4-pipeline.html">
       <h3>Unified GA4 analytics pipeline for 8 brands</h3>
       <div class="stack">GA4 &middot; BigQuery &middot; Dataform &middot; GTM</div>
       <p>Architected and own the full web analytics data layer at Direct Wines:
@@ -329,7 +334,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       pre-operations helpers. Powers reporting in Looker Studio and Power BI.</p>
     </a>
 
-    <a class="case" href="#">
+    <a class="case" href="work/event-driven-ingestion-gcp.html">
       <h3>Event-driven ingestion on GCP</h3>
       <div class="stack">Cloud Scheduler &middot; Cloud Run &middot; GCS &middot; Pub/Sub &middot; BigQuery DTS</div>
       <p>Replaced a brittle cron-based SFTP workflow with an event-driven
