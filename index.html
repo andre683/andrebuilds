@@ -158,12 +158,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border-radius: 6px;
     padding: 8px 14px;
     transition: border-color 0.15s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
   }
   .hero .links a:hover { border-color: var(--cyan); }
-  .hero .links a img { height: 14px; width: auto; display: block; }
 
   /* ---------- sections ---------- */
   section { padding: 64px 0; border-top: 1px solid var(--border); }
@@ -304,16 +300,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <h1>Andre Arias<span class="cursor" aria-hidden="true"></span></h1>
     <div class="role">-- analytics engineer</div>
     <p class="lede">
-      Nine years in ecommerce analytics, building end to end: data collection,
-      pipelines, transformation, and reporting. <strong>I've owned the full stack
-      as a one-person data team</strong>, which means I know exactly where the
-      numbers can go wrong and how to make sure they don't.
+      I own the full data layer, from the GTM tag firing on a product page
+      to the Dataform model a finance team queries on Monday morning.
+      <strong>Nine years in ecommerce analytics, one person building the
+      GA4 to BigQuery pipeline for 8 brands</strong>, and an obsession with
+      making sure the number in the dashboard matches reality.
     </p>
     <div class="links">
       <a href="#work">view work</a>
-      <a href="https://github.com/andre683" target="_blank" rel="noopener"><img src="images/github-mark-white.svg" alt="">github</a>
-      <a href="https://www.linkedin.com/in/augustoarias/" target="_blank" rel="noopener"><img src="images/LI-In-Bug.png" alt="">linkedin</a>
-      <a href="https://open.spotify.com/playlist/34ojh4MUHbRug9ZWDNXhfE?si=7007e14cc1e1457d" target="_blank" rel="noopener"><img src="images/Spotify_Logo_White.png" alt="">spotify</a>
+      <a href="https://github.com/andre683" target="_blank" rel="noopener">github</a>
+      <a href="https://www.linkedin.com/in/augustoarias/" target="_blank" rel="noopener">linkedin</a>
     </div>
   </div>
 </header>
@@ -324,7 +320,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div class="wrap">
     <div class="section-label">-- selected work</div>
 
-    <a class="case" href="work/unified-ga4-pipeline.html">
+    <a class="case" href="#">
       <h3>Unified GA4 analytics pipeline for 8 brands</h3>
       <div class="stack">GA4 &middot; BigQuery &middot; Dataform &middot; GTM</div>
       <p>Architected and own the full web analytics data layer at Direct Wines:
@@ -333,7 +329,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       pre-operations helpers. Powers reporting in Looker Studio and Power BI.</p>
     </a>
 
-    <a class="case" href="work/event-driven-ingestion-gcp.html">
+    <a class="case" href="#">
       <h3>Event-driven ingestion on GCP</h3>
       <div class="stack">Cloud Scheduler &middot; Cloud Run &middot; GCS &middot; Pub/Sub &middot; BigQuery DTS</div>
       <p>Replaced a brittle cron-based SFTP workflow with an event-driven
@@ -341,7 +337,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       trigger BigQuery transfers. Fewer moving parts, no silent failures.</p>
     </a>
 
-    <!--
     <a class="case" href="#">
       <h3>Open-source dbt package for GA4 + BigQuery</h3>
       <div class="stack">dbt &middot; BigQuery &middot; GA4</div>
@@ -350,7 +345,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       Built in the open, write-up to follow.</p>
       <span class="status">in progress</span>
     </a>
-    -->
   </div>
 </section>
 
@@ -362,7 +356,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <span class="note-title">Backfilling incremental models in Dataform with a compilation variable</span>
       <span class="note-date">2026-05</span>
     </a>
-    <!--
     <a class="note" href="#">
       <span class="note-title">Partition override pre-operations: reusable JS helpers for Dataform</span>
       <span class="note-date">2026-05</span>
@@ -375,21 +368,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <span class="note-title">Bot detection fields for GA4 server-side tagging with Stape</span>
       <span class="note-date">2026-04</span>
     </a>
-    -->
   </div>
 </section>
 
 <section id="about">
   <div class="wrap about">
     <div class="section-label">-- about</div>
-    <p><strong>I started in marketing analytics and worked my way down the stack.</strong>
-    Six-plus years in web and ecommerce analytics taught me that dashboards are
-    the easy part; the hard part is the modeling and plumbing underneath that
-    makes them trustworthy. So that's where I work now.</p>
-    <p>Originally from Peru, now in Bridgeport, Connecticut. Away from the
-    keyboard I'm a runner, a bullet-journal person, and a builder of small
-    systems: home servers, automations, and the occasional overly engineered
-    backyard project.</p>
+    <p><strong>I started in ecommerce and marketing analytics, but kept getting
+    pulled toward the machinery underneath.</strong> What began as working with
+    web analytics and customer behavior gradually turned into building the
+    systems that make the data trustworthy in the first place. That's where
+    I've landed, and where I do my best work.</p>
+    <p>Originally from Peru, now in Connecticut. Outside of work I'm a runner,
+    a chronic tinkerer, and someone who tends to overcomplicate projects for
+    the fun of figuring them out.</p>
   </div>
 </section>
 
@@ -398,7 +390,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="section-label">-- contact</div>
     <p style="color: var(--muted);">Open to senior analytics engineering roles. The fastest way to reach me:</p>
     <div class="links">
-      <a href="mailto:hello@andrebuilds.com">hello@andrebuilds.com</a>
+      <a href="mailto:aarias683@gmail.com">aarias683@gmail.com</a>
       <a href="https://www.linkedin.com/in/augustoarias/" target="_blank" rel="noopener">linkedin</a>
       <a href="https://github.com/andre683" target="_blank" rel="noopener">github</a>
     </div>
